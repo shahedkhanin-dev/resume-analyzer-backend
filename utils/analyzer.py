@@ -1,9 +1,20 @@
-from .skills_db import skills_list
+from .skills_db import skills_list, skill_aliases
 from .job_roles import job_roles
 
 
-def extract_skills(text: str):
+def normalize_text(text: str):
     text = text.lower()
+
+    # replace aliases
+    for alias, real in skill_aliases.items():
+        text = text.replace(alias, real)
+
+    return text
+
+
+def extract_skills(text: str):
+    text = normalize_text(text)
+
     found_skills = []
 
     for skill in skills_list:
@@ -13,57 +24,65 @@ def extract_skills(text: str):
     return list(set(found_skills))
 
 
+def suggest_roles(input_role: str):
+    suggestions = []
+
+    for role in job_roles.keys():
+        if input_role in role:
+            suggestions.append(role)
+
+    return suggestions
+
+
 def match_job_role(skills, role):
-    role = role.lower().strip()
-
-    role_map = {
-        "frontend": "frontend developer",
-        "backend": "backend developer",
-        "data": "data scientist",
-        "ml": "data scientist",
-        "ai": "data scientist"
-    }
-
-    if role in role_map:
-        role = role_map[role]
+    role = role.lower()
 
     if role not in job_roles:
         return {
             "role": role,
             "error": "Role not found",
-            "available_roles": list(job_roles.keys())
+            "available_roles": list(job_roles.keys()),
+            "suggestions": suggest_roles(role)
         }
 
-    required = job_roles[role]
+    role_data = job_roles[role]
+    required = role_data["required"]
+    optional = role_data["optional"]
 
-    matched = [skill for skill in skills if skill in required]
-    missing = [skill for skill in required if skill not in skills]
+    matched_required = [s for s in skills if s in required]
+    matched_optional = [s for s in skills if s in optional]
 
-    match_percent = int((len(matched) / len(required)) * 100)
+    missing_required = [s for s in required if s not in skills]
 
-    # recommendations
+    score = (len(matched_required) * 10) + (len(matched_optional) * 5)
+    max_score = (len(required) * 10) + (len(optional) * 5)
+
+    match_percent = int((score / max_score) * 100)
+
+    if match_percent < 40:
+        level = "Beginner"
+    elif match_percent < 70:
+        level = "Intermediate"
+    else:
+        level = "Strong"
+
     recommendations = []
 
-    # always suggest improvement
-    if match_percent >= 80:
-        recommendations.append("Great profile! Try building advanced real-world projects")
-
-    if "express" in missing:
-        recommendations.append("Learn Express.js for backend development")
-
-    if "node" in skills and "express" in missing:
-        recommendations.append("Build REST APIs using Node.js + Express")
-
-    if "mongodb" in skills:
-        recommendations.append("Practice full-stack projects with MongoDB")
+    for skill in missing_required:
+        recommendations.append(f"Learn {skill} to improve your profile")
 
     if match_percent < 50:
-        recommendations.append("Focus on core backend fundamentals")
+        recommendations.append("Focus on core skills before applying")
+
+    if "projects" not in skills:
+        recommendations.append("Build 2-3 real-world projects")
 
     return {
         "role": role,
-        "matched": matched,
-        "missing": missing,
-        "match_percent": match_percent,
+        "match_percentage": match_percent,
+        "level": level,
+        "matched_required_skills": matched_required,
+        "matched_optional_skills": matched_optional,
+        "missing_skills": missing_required,
         "recommendations": recommendations
     }

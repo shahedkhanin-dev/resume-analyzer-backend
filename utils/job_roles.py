@@ -1,11 +1,14 @@
 job_roles = {
-    "frontend developer": [
-        "html", "css", "javascript", "react", "git"
-    ],
-    "backend developer": [
-        "python", "node", "sql", "mongodb", "express"
-    ],
-    "data scientist": [
-        "python", "pandas", "numpy", "machine learning", "nlp"
-    ]
+    "frontend developer": {
+        "required": ["html", "css", "javascript", "react"],
+        "optional": ["git", "github", "tailwind"]
+    },
+    "backend developer": {
+        "required": ["node", "express", "sql", "mongodb"],
+        "optional": ["python", "docker", "api"]
+    },
+    "data scientist": {
+        "required": ["python", "machine learning", "data analysis"],
+        "optional": ["nlp", "sql", "pandas"]
+    }
 }

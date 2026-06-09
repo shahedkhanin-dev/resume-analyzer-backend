@@ -1,10 +1,12 @@
 skills_list = [
-    "python", "java", "c++", "javascript", "typescript",
-    "react", "node", "express", "django", "flask",
-    "machine learning", "deep learning", "nlp",
-    "data science", "pandas", "numpy", "scikit-learn",
-    "tensorflow", "keras",
-    "sql", "mongodb",
-    "html", "css", "tailwind",
-    "git", "github"
+    "html", "css", "javascript", "react", "node", "express",
+    "python", "java", "sql", "mongodb", "git", "github",
+    "nlp", "machine learning", "data analysis"
 ]
+skill_aliases = {
+    "js": "javascript",
+    "nodejs": "node",
+    "reactjs": "react",
+    "py": "python",
+    "ml": "machine learning"
+}
