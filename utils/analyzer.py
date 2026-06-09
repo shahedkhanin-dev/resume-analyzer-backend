@@ -1,88 +1,86 @@
-from .skills_db import skills_list, skill_aliases
-from .job_roles import job_roles
+from difflib import get_close_matches
 
+ROLE_SKILLS = {
+    "frontend developer": ["html", "css", "javascript", "react", "git"],
+    "backend developer": ["python", "java", "node", "sql", "mongodb", "express"],
+    "data scientist": ["python", "machine learning", "nlp", "pandas", "numpy"]
+}
 
-def normalize_text(text: str):
+SKILL_WEIGHTS = {
+    "javascript": 2,
+    "react": 2,
+    "python": 2,
+    "machine learning": 3,
+    "nlp": 3,
+}
+
+def extract_skills(text):
     text = text.lower()
 
-    # replace aliases
-    for alias, real in skill_aliases.items():
-        text = text.replace(alias, real)
+    all_skills = set(sum(ROLE_SKILLS.values(), []))
+    detected = [skill for skill in all_skills if skill in text]
 
-    return text
-
-
-def extract_skills(text: str):
-    text = normalize_text(text)
-
-    found_skills = []
-
-    for skill in skills_list:
-        if skill in text:
-            found_skills.append(skill)
-
-    return list(set(found_skills))
+    return list(set(detected))
 
 
-def suggest_roles(input_role: str):
-    suggestions = []
-
-    for role in job_roles.keys():
-        if input_role in role:
-            suggestions.append(role)
-
-    return suggestions
+def match_job_role(skills, role_input):
+    role_input = role_input.lower()
 
 
-def match_job_role(skills, role):
-    role = role.lower()
+    roles = list(ROLE_SKILLS.keys())
+    matched_role = get_close_matches(role_input, roles, n=1, cutoff=0.5)
 
-    if role not in job_roles:
+    if not matched_role:
         return {
-            "role": role,
+            "role": role_input,
             "error": "Role not found",
-            "available_roles": list(job_roles.keys()),
-            "suggestions": suggest_roles(role)
+            "available_roles": roles,
+            "suggestions": get_close_matches(role_input, roles)
         }
 
-    role_data = job_roles[role]
-    required = role_data["required"]
-    optional = role_data["optional"]
+    role = matched_role[0]
+    required_skills = ROLE_SKILLS[role]
 
-    matched_required = [s for s in skills if s in required]
-    matched_optional = [s for s in skills if s in optional]
+    score = 0
+    total_weight = 0
 
-    missing_required = [s for s in required if s not in skills]
+    matched = []
+    missing = []
 
-    score = (len(matched_required) * 10) + (len(matched_optional) * 5)
-    max_score = (len(required) * 10) + (len(optional) * 5)
+    for skill in required_skills:
+        weight = SKILL_WEIGHTS.get(skill, 1)
+        total_weight += weight
 
-    match_percent = int((score / max_score) * 100)
+        if skill in skills:
+            score += weight
+            matched.append(skill)
+        else:
+            missing.append(skill)
 
-    if match_percent < 40:
-        level = "Beginner"
-    elif match_percent < 70:
-        level = "Intermediate"
-    else:
-        level = "Strong"
+    match_percentage = int((score / total_weight) * 100)
 
-    recommendations = []
+    feedback = generate_feedback(role, matched, missing)
 
-    for skill in missing_required:
-        recommendations.append(f"Learn {skill} to improve your profile")
-
-    if match_percent < 50:
-        recommendations.append("Focus on core skills before applying")
-
-    if "projects" not in skills:
-        recommendations.append("Build 2-3 real-world projects")
+    recommendations = [
+        f"Learn {skill} to improve your chances as a {role}"
+        for skill in missing
+    ]
 
     return {
         "role": role,
-        "match_percentage": match_percent,
-        "level": level,
-        "matched_required_skills": matched_required,
-        "matched_optional_skills": matched_optional,
-        "missing_skills": missing_required,
-        "recommendations": recommendations
+        "match_percentage": match_percentage,
+        "matched_skills": matched,
+        "missing_skills": missing,
+        "recommendations": recommendations,
+        "feedback": feedback
     }
+
+def generate_feedback(role, matched, missing):
+    if len(matched) > len(missing):
+        return f"You have a strong foundation for a {role}. Focus on improving a few missing skills."
+
+    elif len(matched) == 0:
+        return f"Your resume does not currently align with {role}. Consider building relevant projects."
+
+    else:
+        return f"You partially match the {role} role. Strengthen your profile by learning {', '.join(missing[:2])}."
